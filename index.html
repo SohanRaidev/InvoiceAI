@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice AI Processor</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-center mb-8">Invoice AI Processor</h1>
+        
+        <!-- Upload Form -->
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+            <form id="uploadForm" class="space-y-4">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input type="file" id="fileInput" class="hidden" accept=".png,.jpg,.jpeg,.gif">
+                    <label for="fileInput" class="cursor-pointer">
+                        <div class="text-gray-600">
+                            <p>Drag and drop an invoice image, or click to select</p>
+                            <p class="text-sm text-gray-500 mt-2">Supported formats: PNG, JPG, JPEG, GIF</p>
+                        </div>
+                    </label>
+                </div>
+                <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+                    Process Invoice
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden text-center py-4">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p class="mt-4 text-gray-600">Processing your invoice...</p>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4">EasyOCR Results</h2>
+                <div id="easyocrResults" class="space-y-4">
+                    <div class="border-t pt-4">
+                        <h3 class="font-medium">Original Text:</h3>
+                        <p id="easyocrOriginal" class="text-gray-600 mt-2 whitespace-pre-line"></p>
+                    </div>
+                    <div class="border-t pt-4">
+                        <h3 class="font-medium">Structured Data:</h3>
+                        <div id="easyocrStructured" class="mt-2 space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4">Tesseract Results</h2>
+                <div id="tesseractResults" class="space-y-4">
+                    <div class="border-t pt-4">
+                        <h3 class="font-medium">Original Text:</h3>
+                        <p id="tesseractOriginal" class="text-gray-600 mt-2 whitespace-pre-line"></p>
+                    </div>
+                    <div class="border-t pt-4">
+                        <h3 class="font-medium">Structured Data:</h3>
+                        <div id="tesseractStructured" class="mt-2 space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <a id="downloadCsv" href="#" class="inline-block bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">
+                    Download CSV
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                alert('Please select a file first.');
+                return;
+            }
+            
+            // Show loading indicator
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Hide loading indicator
+                    document.getElementById('loading').classList.add('hidden');
+                    
+                    // Show results section
+                    document.getElementById('results').classList.remove('hidden');
+                    
+                    // Update EasyOCR results
+                    document.getElementById('easyocrOriginal').textContent = data.easyocr.original;
+                    const easyocrStructured = document.getElementById('easyocrStructured');
+                    easyocrStructured.innerHTML = Object.entries(data.easyocr.structured)
+                        .map(([key, value]) => `<p><span class="font-medium">${key}:</span> ${value}</p>`)
+                        .join('');
+                    
+                    // Update Tesseract results
+                    document.getElementById('tesseractOriginal').textContent = data.tesseract.original;
+                    const tesseractStructured = document.getElementById('tesseractStructured');
+                    tesseractStructured.innerHTML = Object.entries(data.tesseract.structured)
+                        .map(([key, value]) => `<p><span class="font-medium">${key}:</span> ${value}</p>`)
+                        .join('');
+                    
+                    // Update download link
+                    document.getElementById('downloadCsv').href = data.csv_url;
+                } else {
+                    alert(data.error || 'An error occurred while processing the invoice');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while processing the invoice');
+            } finally {
+                // Hide loading indicator if still visible
+                document.getElementById('loading').classList.add('hidden');
+            }
+        });
+
+        // Preview uploaded file name
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name;
+            if (fileName) {
+                const label = this.nextElementSibling.querySelector('p');
+                label.textContent = `Selected file: ${fileName}`;
+            }
+        });
+    </script>
+</body>
+</html>
