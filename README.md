@@ -8,3 +8,6 @@ Outputs CSV in a structured, Excel-friendly tabular format
 Uses machine learning for accurate data extraction
 Supports batch processing of invoices
 User-friendly and scalable solution for invoice digitization
+
+Working Video:
+https://drive.google.com/file/d/1BRIAYBv7Hnj51cSXevdRxSa1M7RKWi_L/view?usp=drivesdk
